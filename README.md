@@ -199,6 +199,14 @@ $env:SLA_BEFORE_JS="document.querySelector('[data-act=install][data-svc=snowluma
 $env:SLA_BEFORE_WAIT_MS='140000'                         # 点击后等待安装完成再截图
 $env:SLA_SCREENSHOT_DIR='.shots'
 npm start
+
+# 发布到 GitHub（当 github.com:443 被网络阻断、git push 不可用时）
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\push-to-github.ps1 snowluma-astrbot-console
+#   → 读取 Windows 凭据管理器里 git:https://github.com 的令牌（不落盘、不打印），
+#     走 api.github.com 的 Git Data API 上传整棵树并创建提交；
+#     分支已有提交时会作为父提交追加，历史正常累加。
+# 回退分支：node tools/gh-ref-reset.js <owner>/<repo> main <sha>
+# 截图脱敏：python tools/redact-shots.py（配合 tools/grid-shot.py 量坐标）
 ```
 
 主进程模块划分（`app/main/`）：
