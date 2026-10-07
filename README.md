@@ -205,9 +205,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\push-to-github.ps1 sno
 #   → 读取 Windows 凭据管理器里 git:https://github.com 的令牌（不落盘、不打印），
 #     走 api.github.com 的 Git Data API 上传整棵树并创建提交；
 #     分支已有提交时会作为父提交追加，历史正常累加。
+# 注册 SSH 公钥：node tools/gh-add-ssh-key.js [公钥] [标题] [owner/repo]
+#   → 给了 owner/repo 就加成仓库 Deploy Key（写权限，只需 repo 权限的令牌）
 # 回退分支：node tools/gh-ref-reset.js <owner>/<repo> main <sha>
 # 截图脱敏：python tools/redact-shots.py（配合 tools/grid-shot.py 量坐标）
 ```
+
+### 在受限网络里用 SSH 推送（github.com:443 不通时）
+
+GitHub 官方在 `ssh.github.com:443` 提供了 SSH 入口。把下面这段写进 `~/.ssh/config`，之后
+`git fetch` / `git push` 与常规用法完全一致（远程地址仍是标准的 `git@github.com:owner/repo.git`）：
+
+```
+Host github.com
+  HostName ssh.github.com
+  Port 443
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  ServerAliveInterval 30
+```
+
+公钥（`ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519`）加到 GitHub 即可：
+账号级 Settings → SSH and GPG keys，或作为**仓库 Deploy Key**（Settings → Deploy keys，记得勾选
+"Allow write access"）。验证：`ssh -T git@github.com` 应返回
+`Hi <owner>/<repo>! You've successfully authenticated, but GitHub does not provide shell access.`
+
+> 若令牌没有 `admin:public_key` 权限，账号级公钥只能手动加；仓库 Deploy Key 则可以用
+> `repo` 权限的令牌通过 `tools/gh-add-ssh-key.js` 自动添加。
 
 主进程模块划分（`app/main/`）：
 
