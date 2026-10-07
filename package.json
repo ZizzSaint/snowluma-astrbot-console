@@ -1,0 +1,70 @@
+{
+  "name": "snowluma-astrbot-launcher",
+  "productName": "SnowLumaAstrBotConsole",
+  "version": "1.0.0",
+  "description": "SnowLuma × AstrBot 一体化控制台：在同一个应用里下载、启动并使用 SnowLuma 与 AstrBot",
+  "main": "app/main/index.js",
+  "type": "commonjs",
+  "private": true,
+  "author": "SnowLuma × AstrBot Console <local>",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "start:debug": "electron . --enable-logging",
+    "icon": "electron tools/make-icon.js && node tools/check-icon.js",
+    "pack": "electron-packager . SnowLumaAstrBotConsole --platform=win32 --arch=x64 --out=dist --overwrite --asar --prune=true --icon=build/icon.ico --ignore=\"^/(\\.scratch|dist|dist-installer|tools|\\.uitest)\"",
+    "dist": "electron-builder --win nsis --x64",
+    "dist:dir": "electron-builder --win --dir --x64"
+  },
+  "build": {
+    "appId": "local.snowluma.astrbot.console",
+    "productName": "SnowLumaAstrBotConsole",
+    "copyright": "SnowLuma × AstrBot 控制台",
+    "asar": true,
+    "directories": {
+      "output": "dist-installer",
+      "buildResources": "build"
+    },
+    "files": [
+      "app/**/*",
+      "package.json",
+      "node_modules/yauzl/**/*",
+      "node_modules/buffer-crc32/**/*",
+      "node_modules/pend/**/*",
+      "node_modules/fd-slicer/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "SnowLumaAstrBotConsole-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SnowLuma × AstrBot 控制台",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "language": "2052",
+      "artifactName": "SnowLumaAstrBotConsole-Setup-${version}.exe"
+    }
+  },
+  "dependencies": {
+    "yauzl": "^3.2.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3"
+  }
+}

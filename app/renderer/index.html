@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" />
+  <title>SnowLuma × AstrBot 控制台</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">SL</div>
+        <div class="brand-text">
+          <strong>SnowLuma × AstrBot</strong>
+          <span>一体化控制台</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-page="home"><span class="ni">🏠</span>总览</button>
+        <button class="nav-item" data-page="snowluma"><span class="ni">❄️</span>SnowLuma 控制台<span class="dot" id="dot-snowluma"></span></button>
+        <button class="nav-item" data-page="astrbot"><span class="ni">🤖</span>AstrBot 控制台<span class="dot" id="dot-astrbot"></span></button>
+        <button class="nav-item" data-page="bridge"><span class="ni">🔗</span>桥接教程</button>
+        <button class="nav-item" data-page="logs"><span class="ni">📜</span>运行日志</button>
+        <button class="nav-item" data-page="settings"><span class="ni">⚙️</span>设置</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div id="foot-summary">加载中…</div>
+        <button class="link-btn" id="btn-open-root">打开数据目录</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-title" id="page-title">总览</div>
+        <div class="topbar-actions">
+          <span class="chip" id="chip-qq">QQ：检测中…</span>
+          <button class="btn ghost small" id="btn-refresh-all">刷新状态</button>
+        </div>
+      </header>
+
+      <!-- ===================== 总览 ===================== -->
+      <section class="page active" id="page-home">
+        <div class="grid">
+          <div class="card env-card">
+            <div class="card-head"><h2>本机环境</h2><button class="btn ghost small" id="btn-rescan">重新检测</button></div>
+            <div class="kv" id="env-kv"></div>
+            <div class="hint" id="qq-hint"></div>
+            <div class="freeze-box">
+              <div class="freeze-head">
+                <span class="freeze-title">❄ QQ 自动更新</span>
+                <span class="badge" id="qq-freeze-badge">检测中…</span>
+              </div>
+              <div class="hint" id="qq-freeze-hint"></div>
+              <div class="actions">
+                <button class="btn small" id="btn-freeze-qq">冻结 QQ 自动更新</button>
+                <button class="btn small ghost" id="btn-unfreeze-qq">解除冻结</button>
+                <button class="btn small ghost" id="btn-open-hosts">打开 hosts 文件</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bridge-card">
+            <div class="card-head"><h2>桥接状态</h2><button class="btn ghost small" data-goto="bridge">去配置</button></div>
+            <div class="kv" id="bridge-kv"></div>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card service-card" id="card-snowluma">
+            <div class="card-head">
+              <h2>❄️ SnowLuma <span class="badge" id="badge-snowluma">检测中</span></h2>
+              <div class="head-actions">
+                <button class="btn ghost small" data-goto="snowluma">打开控制台</button>
+              </div>
+            </div>
+            <div class="kv" id="kv-snowluma"></div>
+            <div class="path-box" id="paths-snowluma"></div>
+            <div class="install-options" id="opts-snowluma"></div>
+            <div class="progress hidden" id="prog-snowluma">
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <div class="progress-text"></div>
+            </div>
+            <div class="actions" id="actions-snowluma"></div>
+          </div>
+
+          <div class="card service-card" id="card-astrbot">
+            <div class="card-head">
+              <h2>🤖 AstrBot <span class="badge" id="badge-astrbot">检测中</span></h2>
+              <div class="head-actions">
+                <button class="btn ghost small" data-goto="astrbot">打开控制台</button>
+              </div>
+            </div>
+            <div class="kv" id="kv-astrbot"></div>
+            <div class="path-box" id="paths-astrbot"></div>
+            <div class="install-options" id="opts-astrbot"></div>
+            <div class="progress hidden" id="prog-astrbot">
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <div class="progress-text"></div>
+            </div>
+            <div class="actions" id="actions-astrbot"></div>
+          </div>
+        </div>
+
+        <div class="card quick-actions">
+          <div class="card-head"><h2>快捷操作</h2></div>
+          <div class="actions">
+            <button class="btn primary" id="btn-start-all">▶ 一键启动全部</button>
+            <button class="btn" id="btn-stop-all">⏹ 一键停止全部</button>
+            <button class="btn" id="btn-check-updates">⟳ 检查更新</button>
+            <button class="btn" id="btn-bridge-now">🔗 一键桥接</button>
+            <button class="btn ghost" id="btn-open-logs">查看日志</button>
+          </div>
+          <div class="hint" id="quick-hint"></div>
+        </div>
+      </section>
+
+      <!-- ===================== 内嵌控制台 ===================== -->
+      <section class="page viewer-page" id="page-snowluma">
+        <div class="viewer-toolbar">
+          <button class="btn ghost small" data-view="snowluma" data-act="back">←</button>
+          <button class="btn ghost small" data-view="snowluma" data-act="forward">→</button>
+          <button class="btn ghost small" data-view="snowluma" data-act="reload">⟳ 刷新</button>
+          <span class="url-chip" id="url-snowluma">http://127.0.0.1:5099/</span>
+          <button class="btn ghost small" data-view="snowluma" data-act="external">在浏览器打开</button>
+          <button class="btn ghost small" id="btn-start-snowluma-top">启动 SnowLuma</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="btn-login-snowluma">🔑 一键登录</button>
+          <button class="btn ghost small" id="btn-cred-snowluma">登录凭据</button>
+        </div>
+        <div class="viewer-body">
+          <webview id="wv-snowluma" partition="persist:snowluma"></webview>
+          <div class="viewer-placeholder" id="ph-snowluma">
+            <div class="ph-icon">❄️</div>
+            <h3>SnowLuma 控制台未运行</h3>
+            <p>启动 SnowLuma 后，这里会直接内嵌显示它的 WebUI（端口 5099），无需打开浏览器。</p>
+            <button class="btn primary" id="btn-start-snowluma-ph">启动 SnowLuma</button>
+          </div>
+          <div class="viewer-loading hidden" id="ld-snowluma"><div class="spinner"></div><span>正在载入控制台…</span></div>
+        </div>
+      </section>
+
+      <section class="page viewer-page" id="page-astrbot">
+        <div class="viewer-toolbar">
+          <button class="btn ghost small" data-view="astrbot" data-act="back">←</button>
+          <button class="btn ghost small" data-view="astrbot" data-act="forward">→</button>
+          <button class="btn ghost small" data-view="astrbot" data-act="reload">⟳ 刷新</button>
+          <span class="url-chip" id="url-astrbot">http://127.0.0.1:6185/</span>
+          <button class="btn ghost small" data-view="astrbot" data-act="external">在浏览器打开</button>
+          <button class="btn ghost small" id="btn-start-astrbot-top">启动 AstrBot</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="btn-login-astrbot">🔑 一键登录</button>
+          <button class="btn ghost small" id="btn-cred-astrbot">登录凭据</button>
+        </div>
+        <div class="viewer-body">
+          <webview id="wv-astrbot" partition="persist:astrbot"></webview>
+          <div class="viewer-placeholder" id="ph-astrbot">
+            <div class="ph-icon">🤖</div>
+            <h3>AstrBot 控制台未运行</h3>
+            <p>启动 AstrBot 后，这里会直接内嵌显示它的 WebUI（端口 6185）。</p>
+            <button class="btn primary" id="btn-start-astrbot-ph">启动 AstrBot</button>
+          </div>
+          <div class="viewer-loading hidden" id="ld-astrbot"><div class="spinner"></div><span>正在载入控制台…</span></div>
+        </div>
+      </section>
+
+      <!-- ===================== 桥接教程 ===================== -->
+      <section class="page" id="page-bridge">
+        <div class="card">
+          <div class="card-head"><h2>把 AstrBot 接入 QQ（SnowLuma + AstrBot 桥接）</h2></div>
+          <p class="lead">SnowLuma 负责把本机 QQ 变成 OneBot v11 机器人；AstrBot 内置 OneBot v11（aiocqhttp）适配器，作为<b>反向 WebSocket 服务端</b>监听。因此由 <b>SnowLuma 主动连接 AstrBot</b>，连接地址形如 <code>ws://127.0.0.1:6199/ws</code>。</p>
+          <div class="diagram">
+            <span class="node">手机 QQ 扫码</span>
+            <span class="arrow">→</span>
+            <span class="node">本机 QQ（NTQQ）</span>
+            <span class="arrow">→</span>
+            <span class="node">SnowLuma<br /><small>OneBot v11</small></span>
+            <span class="arrow">反向 WS<br /><small>ws://127.0.0.1:6199/ws</small></span>
+            <span class="node">AstrBot<br /><small>aiocqhttp 适配器</small></span>
+            <span class="arrow">→</span>
+            <span class="node">大模型 / 插件</span>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>适用条件</h2></div>
+            <ul class="checklist" id="bridge-precheck"></ul>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>一键桥接</h2></div>
+            <div class="form-row">
+              <label>AstrBot 反向 WS 端口</label>
+              <input type="number" id="bridge-port" min="1" max="65535" value="6199" />
+            </div>
+            <div class="form-row">
+              <label>Access Token（两边保持一致，可留空）</label>
+              <input type="text" id="bridge-token" placeholder="留空表示不使用 token" />
+            </div>
+            <div class="actions">
+              <button class="btn" id="btn-bridge-astrbot">① 写入 AstrBot 平台配置</button>
+              <button class="btn" id="btn-bridge-snowluma">② 写入 SnowLuma 反向 WS</button>
+              <button class="btn primary" id="btn-bridge-full">一键完成（推荐）</button>
+            </div>
+            <div class="hint" id="bridge-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>详细步骤</h2></div>
+          <ol class="steps">
+            <li>
+              <h4>准备好本机 QQ</h4>
+              <p>确保装了桌面版 QQ（NTQQ）并能正常打开。SnowLuma 通过注入 <code>QQ.exe</code> 进程来接管登录，所以 QQ 必须是<b>桌面版</b>，且与 SnowLuma 运行在同一个 Windows 用户下（权限要一致，不要一个用管理员、一个不用）。</p>
+            </li>
+            <li>
+              <h4>在本应用里启动 SnowLuma</h4>
+              <p>回到「总览」→ SnowLuma 卡片 → 点击「启动」。本应用会自动开启 hook 自动注入（<code>hookAutoLoad</code>），启动后自动注入已经打开的 QQ 进程；如果 QQ 后开，SnowLuma 会持续探测并注入。</p>
+            </li>
+            <li>
+              <h4>用手机 QQ 扫码登录</h4>
+              <p>打开「SnowLuma 控制台」标签页，用 <code>admin</code> + 应用里显示的初始密码登录（首次启动时由启动器预置，可在工具栏「登录凭据」里复制）。然后在弹出的 QQ 窗口里用手机扫码登录。</p>
+            </li>
+            <li>
+              <h4>启动 AstrBot 并登录面板</h4>
+              <p>「总览」→ AstrBot 卡片 → 「启动」。打开「AstrBot 控制台」，用户名 <code>astrbot</code>，初始密码可在工具栏「登录凭据」里复制（若密码丢失，用「设置 → 重置 AstrBot 面板密码」重新生成）。</p>
+            </li>
+            <li>
+              <h4>一键写入两边配置</h4>
+              <p>点击上方「一键完成」：启动器会把 AstrBot 的 OneBot v11 平台配置写成反向 WS（<code>127.0.0.1:6199</code>）并重启 AstrBot，然后把 SnowLuma 的 <code>config/onebot.json</code> 写入一个指向 <code>ws://127.0.0.1:6199/ws</code> 的反向 WS 客户端。</p>
+            </li>
+            <li>
+              <h4>验证</h4>
+              <p>AstrBot 日志出现 <code>aiocqhttp(OneBot v11) 适配器已连接。</code> 即成功。用另一个 QQ 号（或群里）给机器人发 <code>/help</code>（默认唤醒前缀 <code>/</code>），能收到回复就说明整条链路通了。</p>
+            </li>
+          </ol>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>手动配置（排错用）</h2></div>
+            <h4>SnowLuma 侧</h4>
+            <p>WebUI → 「配置 / OneBot」→ 反向 WS（wsClients）新增一条：</p>
+            <pre><code>名称: astrbot-bridge
+启用: 是
+URL: ws://127.0.0.1:6199/ws
+Role: Universal
+Access Token: 与 AstrBot 一致（可留空）</code></pre>
+            <h4>AstrBot 侧</h4>
+            <p>WebUI → 「机器人」→ 创建/编辑 → 选 <b>OneBot v11</b> → 接入设置：</p>
+            <pre><code>反向 Websocket 主机: 127.0.0.1
+反向 Websocket 端口: 6199
+Token: 与 SnowLuma 一致（可留空）</code></pre>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>常见问题</h2></div>
+            <ul class="faq">
+              <li><b>端口 6199 被占用</b>：改成一个空闲端口，然后两边的端口保持一致（本应用「设置 → 端口」也能改）。</li>
+              <li><b>一直显示未连接</b>：先确认 SnowLuma 里 QQ 已登录成功（SnowLuma 控制台能看到账号），再确认 AstrBot 已重启并加载了 OneBot v11 平台。</li>
+              <li><b>hook 注入失败 / QQ 崩溃</b>：SnowLuma 的 native hook 与 QQ 版本绑定。QQ 自动更新到新版本后可能不再兼容——官方建议<b>冻结 QQ 自动更新</b>（设置页有一键冻结），或在设置里切换到其他 SnowLuma 版本重试。</li>
+              <li><b>QQ 窗口没弹出来</b>：SnowLuma 只注入，不会隐藏 QQ；请手动打开一次 QQ 再扫码。</li>
+              <li><b>机器人不回复</b>：AstrBot 还需要配置模型提供商（服务提供商 API Key），否则收到消息也不会生成回复。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 日志 ===================== -->
+      <section class="page" id="page-logs">
+        <div class="card flex-fill">
+          <div class="card-head">
+            <h2>运行日志</h2>
+            <div class="head-actions">
+              <div class="tabs" id="log-tabs">
+                <button class="tab active" data-log="snowluma">SnowLuma</button>
+                <button class="tab" data-log="astrbot">AstrBot</button>
+              </div>
+              <label class="switch"><input type="checkbox" id="log-autoscroll" checked /> 自动滚动</label>
+              <button class="btn ghost small" id="btn-log-clear">清空</button>
+              <button class="btn ghost small" id="btn-log-export">导出</button>
+            </div>
+          </div>
+          <pre class="log-view" id="log-view"></pre>
+        </div>
+      </section>
+
+      <!-- ===================== 设置 ===================== -->
+      <section class="page" id="page-settings">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>目录</h2></div>
+            <div class="form-row">
+              <label>数据根目录（程序、数据、日志都放这里）</label>
+              <div class="input-group">
+                <input type="text" id="set-dataRoot" />
+                <button class="btn small" id="btn-pick-root">选择…</button>
+                <button class="btn small ghost" id="btn-open-root2">打开</button>
+              </div>
+            </div>
+            <div class="hint">修改后新的下载/安装会使用新目录。要把已有数据搬过去，用下面的「迁移数据目录」——它会停止服务、复制并校验后自动切换。</div>
+            <div class="actions">
+              <button class="btn small" id="btn-migrate-data">迁移数据目录…</button>
+              <button class="btn small ghost" id="btn-migrate-default">使用推荐位置</button>
+            </div>
+            <div class="progress hidden" id="prog-migrate">
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <div class="progress-text"></div>
+            </div>
+            <div class="path-box" id="paths-summary"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>端口</h2><button class="btn small" id="btn-save-ports">保存端口</button></div>
+            <div class="form-row"><label>SnowLuma WebUI</label><input type="number" id="set-port-sl" /></div>
+            <div class="form-row"><label>SnowLuma OneBot HTTP</label><input type="number" id="set-port-slhttp" /></div>
+            <div class="form-row"><label>SnowLuma OneBot WS</label><input type="number" id="set-port-slws" /></div>
+            <div class="form-row"><label>AstrBot WebUI</label><input type="number" id="set-port-ab" /></div>
+            <div class="form-row"><label>AstrBot 反向 WS</label><input type="number" id="set-port-abws" /></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>下载源与镜像</h2><button class="btn small" id="btn-save-mirrors">保存</button></div>
+            <div class="form-row"><label class="switch"><input type="checkbox" id="set-mirror-enabled" /> 直连失败时自动使用镜像加速</label></div>
+            <div class="form-row"><label>自定义镜像前缀</label><input type="text" id="set-mirror-custom" placeholder="https://ghproxy.net/" /></div>
+            <div class="form-row"><label>镜像列表（每行一个，按顺序尝试）</label><textarea id="set-mirror-list" rows="4"></textarea></div>
+            <div class="form-row"><label>pip 源（AstrBot 依赖）</label>
+              <select id="set-pip-index"></select>
+            </div>
+            <div class="hint">当前网络如果直连 GitHub 失败，会自动按顺序切换镜像；pip 源失败也会自动换下一个。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>运行时</h2><button class="btn small" id="btn-save-runtime">保存</button></div>
+            <div class="form-row"><label class="switch"><input type="checkbox" id="set-autostart" /> 应用启动时自动拉起已安装的服务</label></div>
+            <div class="form-row"><label class="switch"><input type="checkbox" id="set-restart-on-update" /> 更新完成后自动重启对应服务</label></div>
+            <div class="form-row"><label>Python 解释器（AstrBot 需要 ≥ 3.12）</label>
+              <div class="input-group">
+                <input type="text" id="set-python" placeholder="留空自动选择" />
+                <button class="btn small" id="btn-detect-python">检测</button>
+              </div>
+            </div>
+            <div class="hint" id="python-hint"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>QQ 兼容性与自动更新</h2><span class="badge" id="qq-freeze-badge2">检测中…</span></div>
+            <div class="kv" id="qq-kv"></div>
+            <div class="actions">
+              <button class="btn small" id="btn-freeze-qq2">冻结 QQ 自动更新</button>
+              <button class="btn small ghost" id="btn-unfreeze-qq2">解除冻结</button>
+              <button class="btn small ghost" id="btn-open-hosts2">打开 hosts 文件</button>
+            </div>
+            <div class="hint" id="qq-freeze-hint2"></div>
+            <div class="hint">SnowLuma 的 native hook 是按 QQ 版本对齐的：QQ 自动升级后可能注入失败。冻结的做法是把 <code>qqpatch.gtimg.cn</code> 解析到 <code>0.0.0.0</code>（与官方文档建议一致），写入 hosts 需要管理员权限，应用只会弹出 UAC 授权框，不会出现终端窗口。若已经升级到不兼容版本，可在总览页切换到其他 SnowLuma 版本重试。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>凭据与维护</h2></div>
+            <div class="kv" id="cred-kv"></div>
+            <div class="actions">
+              <button class="btn small" id="btn-copy-sl-pass">复制 SnowLuma 密码</button>
+              <button class="btn small" id="btn-reset-ab-pass">重置 AstrBot 面板密码</button>
+              <button class="btn small ghost" id="btn-repair-ab-deps">修复 AstrBot 依赖</button>
+              <button class="btn small ghost" id="btn-refresh-ab-dashboard">修复 AstrBot 面板资源</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>关于</h2></div>
+          <div class="kv" id="about-kv"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toasts"></div>
+
+  <div class="modal hidden" id="modal">
+    <div class="modal-box">
+      <div class="modal-head"><h3 id="modal-title">提示</h3><button class="btn ghost small" id="modal-close">✕</button></div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

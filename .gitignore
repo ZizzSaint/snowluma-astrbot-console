@@ -1,0 +1,21 @@
+# 依赖与构建产物
+node_modules/
+dist/
+dist-installer/
+build/icon-*.png
+
+# 开发期临时文件（下载缓存、自检截图、网格标尺图等）
+.scratch/
+.shots/
+.uitest/
+.uitest-shots/
+.grid-*.png
+.redact-check.png
+docs/screenshots-backup/
+
+# 编辑器
+.vscode/
+.idea/
+*.log
+Thumbs.db
+desktop.ini
