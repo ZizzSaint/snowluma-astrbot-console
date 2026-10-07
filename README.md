@@ -15,11 +15,14 @@
 
 ## 一、快速开始
 
-### 方式 A：用安装包（推荐）
+### 方式 A：下载安装包（推荐）
 
-运行 `dist-installer/SnowLumaAstrBotConsole-Setup-1.0.0.exe`（NSIS 单文件安装包，自带图标，可选安装目录、创建桌面/开始菜单快捷方式，卸载**不会**删除 SnowLuma/AstrBot 的数据）。
+到 **[Releases](https://github.com/ZizzSaint/snowluma-astrbot-console/releases/latest)** 下载 `SnowLumaAstrBotConsole-Setup-1.0.0.exe`（NSIS 单文件安装包，自带图标，可选安装目录、创建桌面/开始菜单快捷方式，卸载**不会**删除 SnowLuma/AstrBot 的数据）。
 
-生成安装包：
+> 该安装包在受限网络下是**分片上传**的：如果 Release 里只看到 `.part01` … `.part06`，把全部分片和 `join-installer.cmd` 下载到同一目录后双击 `join-installer.cmd` 即可合并（脚本会打印 SHA256 供校验）。
+> 直连 `github.com` 慢或超时时，在下载地址前拼镜像前缀即可，例如 `https://ghproxy.net/https://github.com/ZizzSaint/snowluma-astrbot-console/releases/download/v1.0.0/<文件名>`。
+
+自行构建安装包：
 
 ```powershell
 npm run icon     # 生成 build/icon.ico（多尺寸，7 档）
