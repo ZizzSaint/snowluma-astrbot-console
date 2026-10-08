@@ -7,6 +7,7 @@
 - AstrBot 更新会**保留原有数据**（配置、插件、数据库、会话记录全在 `data/` 里，更新只替换程序代码）；
 - 本机没装时显示「下载安装」，按本机环境自动选择版本（SnowLuma 会按平台/架构/Node 情况选精简版或内置 Node 的完整版，并展示本机 QQ 版本与 hook 兼容性提示）；
 - **应用内冻结 QQ 自动更新**：读取 hosts 当前状态，一键冻结/解除（只弹 UAC，不弹终端）；
+- **关闭窗口缩进托盘**：点关闭/最小化只把窗口收进系统托盘，SnowLuma 与 AstrBot 继续在后台运行（机器人不掉线）；托盘右键可看实时状态、一键启停服务、彻底退出；不想用可在设置里关掉；
 - 内置 **SnowLuma ↔ AstrBot 桥接教程**，并提供「一键桥接」直接写好两边的 OneBot 反向 WS 配置。
 
 ![总览](docs/screenshots/01-home.png)
@@ -138,6 +139,7 @@ npm run pack        # 产出 dist/SnowLumaAstrBotConsole-win32-x64/SnowLumaAstrB
 | QQ 版本匹配 | 探测本机 QQ 安装路径/版本/架构（PE 头 + `versions/` 目录 + 注册表三重探测），据此选择平台对应的 SnowLuma 包；界面明确提示 hook 与 QQ 版本绑定，并提供历史版本回退 |
 | 冻结 QQ 自动更新（应用内） | 应用内直接读取 hosts 状态（已冻结/未冻结/他人写入），一键冻结或解除：把 `qqpatch.gtimg.cn` 解析到 `0.0.0.0`（与官方文档一致，写入时保留原文件字节、只用 ASCII 标记块，避免编码损坏）。有权限时直接写；没权限时由一个隐藏窗口的提权进程完成——**只会弹 UAC，不会出现终端窗口** |
 | 外部实例兼容 | 如果 5099/6185 上已经有别人（或上次残留）启动的实例，应用会识别为「运行中（外部实例）」并直接内嵌显示，不会重复拉起造成端口冲突 |
+| 关闭窗口 = 托盘常驻 | 窗口 `close`/`minimize` 事件被拦截后 `win.hide()`（进程与子服务继续运行）；托盘图标以 base64 内联进代码，打包成 asar 也能显示；右键菜单每次现场构建，所以状态与菜单项始终是最新的；只有托盘菜单/菜单栏「退出」才会走 `before-quit` 停止服务并结束进程 |
 
 > 关于「按本机 QQ 版本下载对应 SnowLuma」：SnowLuma 官方**没有公开「SnowLuma 版本 ↔ QQ 版本」对照表**，它的 native hook 是按 QQ 版本对齐的，QQ 自动升级后可能不再兼容。因此本应用的做法是：探测本机 QQ（版本/架构）→ 选择匹配平台的发行包（Windows x64 / arm64，精简版或完整版）→ 在界面上展示 QQ 版本并提供「冻结 QQ 更新」和「切换历史版本重装」两条官方建议的处置路径，而不是硬编码一张可能过期的对照表。
 
@@ -203,6 +205,10 @@ $env:SLA_BEFORE_WAIT_MS='140000'                         # 点击后等待安装
 $env:SLA_SCREENSHOT_DIR='.shots'
 npm start
 
+# 托盘自检：模拟点关闭按钮，验证"隐藏而非退出"，再验证托盘能恢复窗口
+$env:SLA_TEST_TRAY='1'
+npm start
+
 # 发布到 GitHub（当 github.com:443 被网络阻断、git push 不可用时）
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\push-to-github.ps1 snowluma-astrbot-console
 #   → 读取 Windows 凭据管理器里 git:https://github.com 的令牌（不落盘、不打印），
@@ -247,6 +253,7 @@ Host github.com
 | `unzip.js` | 流式 zip 解压（进度、防目录穿越、剥离顶层目录） |
 | `proc.js` | 隐藏窗口子进程管理、日志缓冲与落盘 |
 | `qqfreeze.js` | 应用内冻结/解除 QQ 自动更新（hosts 状态读取、字节级安全写入、按需 UAC 提权） |
+| `tray.js` | 系统托盘：图标（base64 内联）、右键实时菜单、气泡提示；配合 `index.js` 的关闭/最小化拦截实现托盘常驻 |
 | `migrate.js` | 数据目录迁移（计划检查 → robocopy 复制 → 文件数/体积校验 → 删旧目录 → 切换根目录） |
 | `env-scan.js` | QQ / Node / Python 探测、PE 架构识别、内置 Node 定位 |
 | `snowluma.js` | SnowLuma 检测/安装/更新/启停/状态/OneBot 配置写入 |
