@@ -1,7 +1,7 @@
 {
   "name": "snowluma-astrbot-launcher",
   "productName": "SnowLumaAstrBotConsole",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SnowLuma × AstrBot 一体化控制台：在同一个应用里下载、启动并使用 SnowLuma 与 AstrBot",
   "main": "app/main/index.js",
   "type": "commonjs",

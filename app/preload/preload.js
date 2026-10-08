@@ -54,6 +54,12 @@ contextBridge.exposeInMainWorld('launcher', {
     logs: (options) => invoke('astrbot:logs', options),
     clearLogs: () => invoke('astrbot:clearLogs'),
   },
+  tray: {
+    hide: () => invoke('tray:hide'),
+    show: () => invoke('tray:show'),
+    status: () => invoke('tray:status'),
+    setEnabled: (enabled) => invoke('tray:setEnabled', { enabled }),
+  },
   migrate: {
     defaultTarget: () => invoke('migrate:defaultTarget'),
     plan: (targetRoot) => invoke('migrate:plan', { targetRoot }),

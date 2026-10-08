@@ -50,6 +50,8 @@ const DEFAULT_SETTINGS = {
   ui: {
     lastPage: 'home',
     confirmStop: true,
+    closeToTray: true,        // 关闭窗口时缩进托盘（服务继续后台运行）
+    trayNoticeShown: false,   // 是否已提示过"已缩进托盘"
   },
 };
 

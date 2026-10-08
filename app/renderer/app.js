@@ -534,6 +534,23 @@ function renderLogs() {
 }
 
 /* ------------------------------------------------------------------ 设置 */
+function renderTrayBadge(d) {
+  const el = document.getElementById('tray-badge');
+  if (!el) return;
+  const tray = (d && d.tray) || {};
+  const on = tray.enabled !== false;
+  el.className = `badge ${tray.available ? (on ? 'ok' : 'warn') : 'err'}`;
+  el.textContent = !tray.available
+    ? '托盘不可用'
+    : (on ? '关闭窗口 → 托盘' : '关闭窗口 → 直接退出');
+}
+
+/** 立即把窗口收进托盘（服务继续运行） */
+async function hideToTray() {
+  const res = await window.launcher.tray.hide();
+  if (res && res.ok) toast('已最小化到托盘，服务继续在后台运行；点托盘图标可恢复窗口', 'ok', 5000);
+}
+
 function fillSettings() {
   const d = state.data;
   if (!d || state.page !== 'settings') return;
@@ -552,6 +569,8 @@ function fillSettings() {
   sel.innerHTML = (s.pip.indexes || []).map((i) => `<option value="${escapeHtml(i)}"${i === s.pip.index ? ' selected' : ''}>${escapeHtml(i)}</option>`).join('');
   $('#set-autostart').checked = Boolean(s.runtime.autostartOnLaunch);
   $('#set-restart-on-update').checked = Boolean(s.runtime.restartOnUpdate);
+  $('#set-close-to-tray').checked = s.ui.closeToTray !== false;
+  renderTrayBadge(d);
   $('#set-python').value = s.python.launcher || '';
   $('#python-hint').textContent = s.python.version ? `当前记录：Python ${s.python.version}` : '尚未记录 Python，安装 AstrBot 时会自动检测。';
   $('#cred-kv').innerHTML = [
@@ -1060,12 +1079,21 @@ function bindEvents() {
         autostartOnLaunch: $('#set-autostart').checked,
         restartOnUpdate: $('#set-restart-on-update').checked,
       },
+      ui: { closeToTray: $('#set-close-to-tray').checked },
       python: { launcher: $('#set-python').value.trim() },
       dataRoot: $('#set-dataRoot').value.trim() || state.data.settings.dataRoot,
     });
     toast('运行时设置已保存', 'ok');
     refresh();
   };
+  $('#set-close-to-tray').onchange = async () => {
+    const enabled = $('#set-close-to-tray').checked;
+    await window.launcher.tray.setEnabled(enabled);
+    toast(enabled ? '已开启：关闭窗口将最小化到托盘，服务继续在后台运行' : '已关闭：关闭窗口将直接退出并停止服务', 'ok', 6000);
+    refresh();
+  };
+  $('#btn-hide-to-tray').onclick = () => hideToTray();
+  $('#btn-hide-tray-quick').onclick = () => hideToTray();
   $('#btn-detect-python').onclick = async () => {
     const res = await window.launcher.env.pythons();
     if (res.usable && res.usable.length) {
@@ -1133,6 +1161,10 @@ function bindIpcEvents() {
   });
   window.launcher.on('log:lines', ({ service, lines }) => appendLogs(service, lines));
   window.launcher.on('status:changed', () => refresh());
+  window.launcher.on('tray:state', ({ windowVisible } = {}) => {
+    if (state.data && state.data.tray) state.data.tray.windowVisible = windowVisible;
+    if (state.page === 'settings') renderTrayBadge(state.data);
+  });
   window.launcher.on('snowluma:credentials', (cred) => {
     toast(`已捕获 SnowLuma 初始密码：${cred.password}（可在工具栏「登录凭据」查看）`, 'info', 9000);
   });

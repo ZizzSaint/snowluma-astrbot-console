@@ -107,6 +107,7 @@
           <div class="actions">
             <button class="btn primary" id="btn-start-all">▶ 一键启动全部</button>
             <button class="btn" id="btn-stop-all">⏹ 一键停止全部</button>
+            <button class="btn" id="btn-hide-tray-quick">🖥 最小化到托盘</button>
             <button class="btn" id="btn-check-updates">⟳ 检查更新</button>
             <button class="btn" id="btn-bridge-now">🔗 一键桥接</button>
             <button class="btn ghost" id="btn-open-logs">查看日志</button>
@@ -333,7 +334,13 @@ Token: 与 SnowLuma 一致（可留空）</code></pre>
             <div class="card-head"><h2>运行时</h2><button class="btn small" id="btn-save-runtime">保存</button></div>
             <div class="form-row"><label class="switch"><input type="checkbox" id="set-autostart" /> 应用启动时自动拉起已安装的服务</label></div>
             <div class="form-row"><label class="switch"><input type="checkbox" id="set-restart-on-update" /> 更新完成后自动重启对应服务</label></div>
-            <div class="form-row"><label>Python 解释器（AstrBot 需要 ≥ 3.12）</label>
+            <div class="form-row"><label class="switch"><input type="checkbox" id="set-close-to-tray" /> 关闭窗口时最小化到托盘（服务继续在后台运行）</label></div>
+            <div class="actions">
+              <button class="btn small ghost" id="btn-hide-to-tray">立即最小化到托盘</button>
+              <span class="badge" id="tray-badge">检测中…</span>
+            </div>
+            <div class="hint">开启后点窗口右上角的关闭按钮只会把窗口收进系统托盘，SnowLuma / AstrBot 继续在后台运行（QQ 机器人不掉线）。托盘图标：<b>左键单击</b>恢复窗口，<b>右键</b>可「启动/停止全部服务」「退出」，工具栏菜单也有「隐藏到托盘（Ctrl+W）」。</div>
+            <div class="form-row" style="margin-top:12px"><label>Python 解释器（AstrBot 需要 ≥ 3.12）</label>
               <div class="input-group">
                 <input type="text" id="set-python" placeholder="留空自动选择" />
                 <button class="btn small" id="btn-detect-python">检测</button>

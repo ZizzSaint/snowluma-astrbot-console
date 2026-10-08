@@ -17,6 +17,7 @@ const u = require('./util');
 const { detectQQ, detectNode, detectPythons } = require('./env-scan');
 const qqfreeze = require('./qqfreeze');
 const migrate = require('./migrate');
+const trayApi = require('./tray');
 
 const APP_TITLE = 'SnowLuma × AstrBot 控制台';
 
@@ -52,6 +53,8 @@ const store = new Store(baseDir);
 store.load();
 
 let win = null;
+let tray = null;
+let lastState = null;
 let quitting = false;
 const pending = { snowluma: null, astrbot: null, migrate: null };
 const logFlush = { snowluma: [], astrbot: [] };
@@ -123,6 +126,11 @@ async function fullState({ withReleases = false } = {}) {
     qqFreeze: qqfreeze.status(),
     systemNode: env.node,
     busy: { snowluma: Boolean(pending.snowluma), astrbot: Boolean(pending.astrbot) },
+    tray: {
+      available: Boolean(tray),
+      enabled: store.data.ui.closeToTray !== false,
+      windowVisible: Boolean(win && !win.isDestroyed() && win.isVisible()),
+    },
   };
   if (withReleases) {
     state.releases = {
@@ -130,6 +138,8 @@ async function fullState({ withReleases = false } = {}) {
       astrbot: await astrbot.releases().catch(() => []),
     };
   }
+  lastState = state;
+  refreshTrayTooltip();
   return state;
 }
 
@@ -154,8 +164,97 @@ function runExclusive(service, task) {
   return promise;
 }
 
-function createWindow() {
-  win = new BrowserWindow({
+/* ------------------------------------------------------------------ 托盘 */
+function trayEnabled() {
+  return store.data.ui.closeToTray !== false;
+}
+
+function showMainWindow() {
+  if (!win || win.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (!win.isVisible()) win.show();
+  if (win.isMinimized()) win.restore();
+  win.focus();
+}
+
+function hideToTray({ silent = false } = {}) {
+  if (!win || win.isDestroyed()) return;
+  win.hide();
+  if (!silent && !store.data.ui.trayNoticeShown) {
+    store.data.ui.trayNoticeShown = true;
+    store.save().catch(() => {});
+    trayApi.notify(
+      '已缩进托盘，服务继续在后台运行',
+      '左键单击托盘图标可重新打开窗口；右键可选择「退出」彻底关闭（会同时停止 SnowLuma 与 AstrBot）。',
+    );
+  }
+  send('tray:state', { windowVisible: false });
+}
+
+function toggleMainWindow() {
+  if (win && !win.isDestroyed() && win.isVisible() && !win.isMinimized()) hideToTray();
+  else showMainWindow();
+}
+
+function serviceSummary(service) {
+  if (!lastState || !lastState[service]) return '状态未知';
+  const s = lastState[service];
+  if (!s.installed) return '未安装';
+  if (s.running || s.external) return s.webuiReady ? '运行中' : '启动中';
+  return '已停止';
+}
+
+function buildTrayMenu() {
+  const items = [
+    { label: '显示主窗口', click: () => showMainWindow() },
+    { label: '隐藏到托盘', enabled: Boolean(win && win.isVisible()), click: () => hideToTray({ silent: true }) },
+    { type: 'separator' },
+    { label: `SnowLuma：${serviceSummary('snowluma')}`, enabled: false },
+    { label: `AstrBot：${serviceSummary('astrbot')}`, enabled: false },
+    { type: 'separator' },
+    { label: '▶ 启动全部服务', click: () => { startAllServices(); } },
+    { label: '⏹ 停止全部服务', click: () => { stopAllServices(); } },
+    { type: 'separator' },
+    { label: '打开数据目录', click: () => shell.openPath(store.data.dataRoot) },
+    { label: '打开日志目录', click: () => shell.openPath(store.layout().logs) },
+    { type: 'separator' },
+    { label: '退出（同时停止两个服务）', click: () => app.quit() },
+  ];
+  return items;
+}
+
+function refreshTrayTooltip() {
+  const parts = [`SnowLuma：${serviceSummary('snowluma')}`, `AstrBot：${serviceSummary('astrbot')}`];
+  trayApi.setTooltip(`SnowLuma × AstrBot 控制台\n${parts.join('  ·  ')}`);
+}
+
+async function startAllServices() {
+  if (!lastState) await fullState().catch(() => {});
+  const tasks = [];
+  const slInfo = await snowluma.installedInfo().catch(() => null);
+  if (slInfo && slInfo.installed && !snowluma.isRunning()) {
+    tasks.push(snowluma.start({ onProgress: (p) => send('progress', p) }).catch((error) => {
+      send('progress', { service: 'snowluma', phase: 'error', message: error.message });
+    }));
+  }
+  const abInfo = await astrbot.installedInfo().catch(() => null);
+  if (abInfo && abInfo.installed && abInfo.hasVenv && !astrbot.isRunning()) {
+    tasks.push(astrbot.start({ onProgress: (p) => send('progress', p) }).catch((error) => {
+      send('progress', { service: 'astrbot', phase: 'error', message: error.message });
+    }));
+  }
+  await Promise.allSettled(tasks);
+  send('status:changed', {});
+}
+
+async function stopAllServices() {
+  await Promise.allSettled([snowluma.stop(), astrbot.stop()]);
+  send('status:changed', {});
+}
+
+function createWindow() {  win = new BrowserWindow({
     width: 1480,
     height: 940,
     minWidth: 1100,
@@ -176,6 +275,23 @@ function createWindow() {
 
   win.once('ready-to-show', () => win.show());
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+  // 关闭窗口 = 缩进托盘（可在设置里关掉），只有真正退出（托盘菜单/菜单栏/Ctrl+Q）才结束进程
+  win.on('close', (event) => {
+    if (quitting) return;
+    if (!trayEnabled()) return;
+    event.preventDefault();
+    hideToTray();
+  });
+  win.on('show', () => send('tray:state', { windowVisible: true }));
+  win.on('hide', () => send('tray:state', { windowVisible: false }));
+  win.on('minimize', (event) => {
+    // 最小化到托盘（Windows 上最小化也收进托盘，避免任务栏占位）
+    if (!trayEnabled()) return;
+    event.preventDefault();
+    hideToTray({ silent: true });
+  });
+
   installScreenshotHarness();
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   if (process.env.SLA_DEBUG === '1') {
@@ -222,6 +338,29 @@ function installScreenshotHarness() {
         const image = await win.webContents.capturePage();
         await fsp.writeFile(single, image.toPNG());
         console.log(`[screenshot] ${single}`);
+      }
+      if (process.env.SLA_TEST_TRAY === '1') {
+        // 托盘自检：关闭窗口后应"隐藏而非退出"，且托盘对象存在、窗口未被销毁
+        try {
+          const before = { visible: win.isVisible(), tray: Boolean(tray) };
+          win.close();
+          await wait(2500);
+          const after = {
+            windowVisible: win.isVisible(),
+            windowDestroyed: win.isDestroyed(),
+            trayAlive: Boolean(tray) && !tray.isDestroyed(),
+            menuItems: buildTrayMenu().filter((i) => i.label).map((i) => i.label),
+            processAlive: true,
+          };
+          console.log(`[tray-test] before=${JSON.stringify(before)}`);
+          console.log(`[tray-test] after=${JSON.stringify(after)}`);
+          // 再验证：托盘恢复窗口 → 重新可见
+          showMainWindow();
+          await wait(1500);
+          console.log(`[tray-test] restoredVisible=${win.isVisible()}`);
+        } catch (error) {
+          console.log(`[tray-test] failed: ${error.message}`);
+        }
       }
       if (process.env.SLA_BEFORE_JS) {
         try {
@@ -299,7 +438,8 @@ function buildMenu() {
         { label: '打开数据目录', click: () => shell.openPath(store.data.dataRoot) },
         { label: '打开日志目录', click: () => shell.openPath(store.layout().logs) },
         { type: 'separator' },
-        { label: '退出', role: 'quit' },
+        { label: '隐藏到托盘', accelerator: 'CmdOrCtrl+W', click: () => hideToTray({ silent: true }) },
+        { label: '退出（同时停止两个服务）', role: 'quit' },
       ],
     },
     {
@@ -433,6 +573,21 @@ function registerIpc() {
   });
   ipcMain.handle('app:quit', async () => { app.quit(); return { ok: true }; });
 
+  // ---- 托盘 ----
+  ipcMain.handle('tray:hide', async () => { hideToTray(); return { ok: true }; });
+  ipcMain.handle('tray:show', async () => { showMainWindow(); return { ok: true }; });
+  ipcMain.handle('tray:status', async () => ({
+    available: Boolean(tray),
+    enabled: trayEnabled(),
+    windowVisible: Boolean(win && !win.isDestroyed() && win.isVisible()),
+    noticeShown: Boolean(store.data.ui.trayNoticeShown),
+  }));
+  ipcMain.handle('tray:setEnabled', async (_e, { enabled } = {}) => {
+    await store.patch({ ui: { closeToTray: enabled !== false } });
+    send('status:changed', {});
+    return { ok: true, enabled: trayEnabled() };
+  });
+
   // ---- 数据目录迁移 ----
   ipcMain.handle('migrate:defaultTarget', async () => {
     const drives = [];
@@ -526,21 +681,37 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.focus();
-    }
+    showMainWindow();
   });
 
+  app.on('before-quit', (event) => {
+    if (quitting) return;
+    quitting = true;
+    event.preventDefault();
+    Promise.allSettled([snowluma.stop(), astrbot.stop()]).then(() => {
+      trayApi.destroyTray();
+      app.exit(0);
+    });
+  });
   app.whenReady().then(async () => {
     nativeTheme.themeSource = 'dark';
     registerIpc();
     buildMenu();
     createWindow();
+    tray = trayApi.createTray({
+      buildMenu: buildTrayMenu,
+      onToggle: toggleMainWindow,
+      onShow: showMainWindow,
+    });
+    refreshTrayTooltip();
     await bootstrapServices();
   });
 
-  app.on('window-all-closed', () => app.quit());
+  // 托盘模式下窗口只是隐藏，不能因为"窗口全关"就退出
+  app.on('window-all-closed', () => {
+    if (trayEnabled() && !quitting) return;
+    app.quit();
+  });
 
   app.on('before-quit', (event) => {
     if (quitting) return;
